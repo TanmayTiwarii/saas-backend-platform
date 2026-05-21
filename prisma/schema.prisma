@@ -7,117 +7,127 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// =============================================================================
+// Enums
+// =============================================================================
+
 enum Role {
-  SUPER_ADMIN
   ADMIN
-  MEMBER
-  VIEWER
+  TEACHER
+  STUDENT
 }
 
-enum SubscriptionStatus {
-  ACTIVE
-  INACTIVE
-  TRIALING
-  PAST_DUE
-  CANCELLED
-}
-
-enum SubscriptionPlan {
-  FREE
-  STARTER
-  PRO
-  ENTERPRISE
-}
+// =============================================================================
+// Models
+// =============================================================================
 
 model User {
-  id                String          @id @default(uuid())
-  email             String          @unique
-  passwordHash      String
-  firstName         String
-  lastName          String
-  role              Role            @default(MEMBER)
-  isEmailVerified   Boolean         @default(false)
-  isActive          Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  id              String          @id @default(uuid())
+  email           String          @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  role            Role            @default(STUDENT)
+  isEmailVerified Boolean         @default(false)
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  memberships       Membership[]
-  refreshTokens     RefreshToken[]
-  passwordResets    PasswordReset[]
+  taughtCourses   Course[]
+  enrollments     Enrollment[]
+  submissions     Submission[]
+  refreshTokens   RefreshToken[]
+  passwordResets  PasswordReset[]
 
   @@map("users")
 }
 
-model Organization {
+model Course {
   id          String       @id @default(uuid())
-  name        String
-  slug        String       @unique
+  title       String
   description String?
-  logoUrl     String?
-  website     String?
+  code        String       @unique
+  teacherId   String
   isActive    Boolean      @default(true)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  memberships  Membership[]
-  subscription Subscription?
+  teacher     User         @relation(fields: [teacherId], references: [id])
+  enrollments Enrollment[]
+  assignments Assignment[]
 
-  @@map("organizations")
+  @@map("courses")
 }
 
-model Membership {
-  id             String       @id @default(uuid())
-  userId         String
-  organizationId String
-  role           Role         @default(MEMBER)
-  joinedAt       DateTime     @default(now())
+model Enrollment {
+  id         String   @id @default(uuid())
+  studentId  String
+  courseId   String
+  enrolledAt DateTime @default(now())
 
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, organizationId])
-  @@map("memberships")
+  @@unique([studentId, courseId])
+  @@map("enrollments")
 }
 
-model Subscription {
-  id             String             @id @default(uuid())
-  organizationId String             @unique
-  plan           SubscriptionPlan   @default(FREE)
-  status         SubscriptionStatus @default(TRIALING)
-  trialEndsAt    DateTime?
-  currentPeriodStart DateTime?
-  currentPeriodEnd   DateTime?
-  cancelledAt    DateTime?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+model Assignment {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  courseId    String
+  dueDate     DateTime?
+  maxMarks    Int          @default(100)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
-  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  submissions Submission[]
 
-  @@map("subscriptions")
+  @@map("assignments")
+}
+
+model Submission {
+  id           String     @id @default(uuid())
+  assignmentId String
+  studentId    String
+  content      String?
+  fileUrl      String?
+  grade        Int?
+  feedback     String?
+  submittedAt  DateTime   @default(now())
+  gradedAt     DateTime?
+
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentId])
+  @@map("submissions")
 }
 
 model RefreshToken {
-  id         String   @id @default(uuid())
-  token      String   @unique
-  userId     String
-  expiresAt  DateTime
-  isRevoked  Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
 }
 
 model PasswordReset {
-  id        String   @id @default(uuid())
-  token     String   @unique
+  id        String    @id @default(uuid())
+  token     String    @unique
   userId    String
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_resets")
 }

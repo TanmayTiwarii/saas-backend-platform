@@ -1,16 +1,17 @@
 // =============================================================================
 // Authorize Middleware – Role-Based Access Control (RBAC)
+// Roles: ADMIN > TEACHER > STUDENT
 // =============================================================================
 const { sendError } = require('../utils/response');
 
 // Role hierarchy: higher index = more permissions
-const ROLE_HIERARCHY = ['VIEWER', 'MEMBER', 'ADMIN', 'SUPER_ADMIN'];
+const ROLE_HIERARCHY = ['STUDENT', 'TEACHER', 'ADMIN'];
 
 /**
  * Returns middleware that allows access only to users whose role
  * is in the provided `allowedRoles` array.
  *
- * Usage: router.get('/admin-only', authenticate, authorize(['ADMIN', 'SUPER_ADMIN']), handler)
+ * Usage: router.get('/route', authenticate, authorize(['ADMIN', 'TEACHER']), handler)
  *
  * @param {string[]} allowedRoles - Array of roles permitted to access the route
  */
@@ -37,9 +38,9 @@ const authorize = (allowedRoles = []) => {
 
 /**
  * Returns middleware that allows users whose role meets a minimum hierarchy level.
- * e.g. requireMinRole('ADMIN') allows ADMIN and SUPER_ADMIN
+ * e.g. requireMinRole('TEACHER') allows TEACHER and ADMIN
  *
- * @param {string} minRole - Minimum role required
+ * @param {string} minRole - Minimum role required (STUDENT | TEACHER | ADMIN)
  */
 const requireMinRole = (minRole) => {
     return (req, res, next) => {
@@ -65,9 +66,9 @@ const requireMinRole = (minRole) => {
 
 /**
  * Ensures the authenticated user is operating on their own resource,
- * OR is a SUPER_ADMIN / ADMIN (can act on behalf of others).
+ * OR is an ADMIN (can act on behalf of others).
  *
- * The target user ID is read from `req.params.id` by default.
+ * The target user ID is read from `req.params[paramKey]`.
  */
 const authorizeOwnerOrAdmin = (paramKey = 'id') => {
     return (req, res, next) => {
@@ -78,7 +79,7 @@ const authorizeOwnerOrAdmin = (paramKey = 'id') => {
         const targetId = req.params[paramKey];
         const { userId, role } = req.user;
 
-        if (userId === targetId || ['ADMIN', 'SUPER_ADMIN'].includes(role)) {
+        if (userId === targetId || role === 'ADMIN') {
             return next();
         }
 

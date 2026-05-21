@@ -1,5 +1,5 @@
 // =============================================================================
-// Express Application – middleware wiring and route mounting
+// Express Application – Student Portal
 // =============================================================================
 const express = require('express');
 const helmet = require('helmet');
@@ -14,8 +14,8 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 // Routes
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
-const orgRoutes = require('./routes/org.routes');
-const subscriptionRoutes = require('./routes/subscription.routes');
+const courseRoutes = require('./routes/course.routes');
+const assignmentRoutes = require('./routes/assignment.routes');
 
 const app = express();
 
@@ -61,6 +61,7 @@ app.use(morgan(morganFormat, { stream: { write: (msg) => logger.http(msg.trim())
 app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
+        app: 'Student Portal API',
         environment: env.nodeEnv,
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
@@ -68,10 +69,10 @@ app.get('/health', (req, res) => {
 });
 
 // ─── API routes ───────────────────────────────────────────────────────────────
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/organizations', orgRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/auth',        authRoutes);
+app.use('/api/users',       userRoutes);
+app.use('/api/courses',     courseRoutes);
+app.use('/api/assignments', assignmentRoutes);
 
 // ─── Error handling ───────────────────────────────────────────────────────────
 app.use(notFound);

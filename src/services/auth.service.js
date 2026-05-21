@@ -13,7 +13,7 @@ const {
 } = require('../utils/tokens');
 
 // ---------------------------------------------------------------------------
-// Register a new user
+// Register a new user (default role: STUDENT)
 // ---------------------------------------------------------------------------
 const register = async ({ firstName, lastName, email, password }) => {
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -158,17 +158,11 @@ const resetPassword = async ({ token, password }) => {
 // Private helpers
 // ---------------------------------------------------------------------------
 const _issueTokenPair = async (user) => {
-    // Fetch the user's primary org membership for the access token payload
-    const membership = await prisma.membership.findFirst({
-        where: { userId: user.id },
-        orderBy: { joinedAt: 'asc' },
-    });
-
+    // JWT payload: userId, email, role (no organizationId — no multi-tenancy)
     const payload = {
         userId: user.id,
         email: user.email,
         role: user.role,
-        ...(membership && { organizationId: membership.organizationId }),
     };
 
     const accessToken = signAccessToken(payload);

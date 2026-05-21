@@ -23,12 +23,16 @@ const getMe = async (userId) => {
         where: { id: userId },
         select: {
             ...SAFE_USER_SELECT,
-            memberships: {
+            // Include enrolled courses for students, taught courses for teachers
+            enrollments: {
                 select: {
-                    role: true,
-                    joinedAt: true,
-                    organization: { select: { id: true, name: true, slug: true } },
+                    enrolledAt: true,
+                    course: { select: { id: true, title: true, code: true } },
                 },
+            },
+            taughtCourses: {
+                where: { isActive: true },
+                select: { id: true, title: true, code: true, _count: { select: { enrollments: true } } },
             },
         },
     });
@@ -65,19 +69,20 @@ const deleteMe = async (userId) => {
 };
 
 // ---------------------------------------------------------------------------
-// Admin: list all users (paginated)
+// Admin: list all users (paginated, filterable by role)
 // ---------------------------------------------------------------------------
-const listUsers = async ({ page = 1, limit = 20, search } = {}) => {
+const listUsers = async ({ page = 1, limit = 20, search, role } = {}) => {
     const skip = (page - 1) * limit;
-    const where = search
-        ? {
+    const where = {
+        ...(role && { role }),
+        ...(search && {
             OR: [
                 { email: { contains: search, mode: 'insensitive' } },
                 { firstName: { contains: search, mode: 'insensitive' } },
                 { lastName: { contains: search, mode: 'insensitive' } },
             ],
-        }
-        : {};
+        }),
+    };
 
     const [users, total] = await prisma.$transaction([
         prisma.user.findMany({ where, select: SAFE_USER_SELECT, skip, take: limit, orderBy: { createdAt: 'desc' } }),
@@ -102,7 +107,7 @@ const getUserById = async (id) => {
 };
 
 // ---------------------------------------------------------------------------
-// Admin: update a user's global role
+// Admin: update a user's role
 // ---------------------------------------------------------------------------
 const updateUserRole = async (id, role) => {
     return prisma.user.update({ where: { id }, data: { role }, select: SAFE_USER_SELECT });

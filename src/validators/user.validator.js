@@ -11,8 +11,8 @@ const updateProfileValidator = [
 const updateRoleValidator = [
     param('id').isUUID().withMessage('Invalid user ID'),
     body('role')
-        .isIn(['VIEWER', 'MEMBER', 'ADMIN', 'SUPER_ADMIN'])
-        .withMessage('Invalid role. Must be VIEWER, MEMBER, ADMIN, or SUPER_ADMIN'),
+        .isIn(['ADMIN', 'TEACHER', 'STUDENT'])
+        .withMessage('Invalid role. Must be ADMIN, TEACHER, or STUDENT'),
 ];
 
 module.exports = { updateProfileValidator, updateRoleValidator };
